@@ -9,6 +9,8 @@ import SwiftUI
 
 @main
 struct PasswordManagerApp: App {
+    @StateObject private var menuBarManager = MenuBarManager()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
