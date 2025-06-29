@@ -13,5 +13,8 @@ struct PasswordManagerApp: App {
         WindowGroup {
             ContentView()
         }
+        .windowResizability(.contentSize)
+        .defaultSize(width: 480, height: 680)
+        .windowToolbarStyle(.unified(showsTitle: false))
     }
 }

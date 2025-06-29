@@ -15,95 +15,143 @@ struct ContentView: View {
     @State private var passwordHistory: [PasswordHistoryItem] = []
     @State private var showingHistory: Bool = false
     @State private var copyFeedback: Bool = false
+    @State private var showingKeychain: Bool = false
+    @State private var showingSaveDialog: Bool = false
+    @State private var accountNameToSave: String = ""
     
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color.blue.opacity(0.15),
-                    Color.purple.opacity(0.10),
-                    Color.pink.opacity(0.05)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            .backgroundExtensionEffect()
-            
-            VStack(spacing: 30) {
-                TitleView(namespace: glassNamespace)
+        GeometryReader { geometry in
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color.blue.opacity(0.15),
+                        Color.purple.opacity(0.10),
+                        Color.pink.opacity(0.05)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                .backgroundExtensionEffect()
                 
-                GlassEffectContainer(spacing: 25.0) {
-                    VStack(spacing: 25) {
+                ScrollView {
+                    VStack(spacing: adaptiveSpacing(for: geometry.size.height)) {
+                        TitleView(namespace: glassNamespace)
                         
-                        PasswordLengthView(
-                            passwordLength: $passwordLength,
-                            namespace: glassNamespace
-                        )
+                        GlassEffectContainer(spacing: 20.0) {
+                            VStack(spacing: 20) {
+                                
+                                PasswordLengthView(
+                                    passwordLength: $passwordLength,
+                                    namespace: glassNamespace
+                                )
+                                
+                                MainToggleView(
+                                    includeSpecialCharacters: $includeSpecialCharacters,
+                                    namespace: glassNamespace
+                                )
+                                
+                                if settingsExpanded {
+                                    AdvancedSettingsView(
+                                        includeNumbers: $includeNumbers,
+                                        includeUppercase: $includeUppercase,
+                                        includeLowercase: $includeLowercase,
+                                        excludeSimilar: $excludeSimilar,
+                                        namespace: glassNamespace
+                                    )
+                                    .glassEffectID("advanced-settings", in: glassNamespace)
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .scale(scale: 0.9)),
+                                        removal: .opacity.combined(with: .scale(scale: 1.1))
+                                    ))
+                                }
+                                
+                                PasswordDisplayView(
+                                    generatedPassword: generatedPassword,
+                                    copyFeedback: $copyFeedback,
+                                    namespace: glassNamespace
+                                )
+                                
+                                ButtonsContainerView(
+                                    isGenerating: $isGenerating,
+                                    settingsExpanded: $settingsExpanded,
+                                    showingHistory: $showingHistory,
+                                    showingKeychain: $showingKeychain,
+                                    generatedPassword: generatedPassword,
+                                    generatePassword: generatePassword,
+                                    copyToClipboard: copyToClipboard,
+                                    saveToKeychain: saveToKeychain,
+                                    namespace: glassNamespace
+                                )
+                            }
+                        }
+                        .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
                         
-                        MainToggleView(
-                            includeSpecialCharacters: $includeSpecialCharacters,
-                            namespace: glassNamespace
-                        )
-                        
-                        if settingsExpanded {
-                            AdvancedSettingsView(
-                                includeNumbers: $includeNumbers,
-                                includeUppercase: $includeUppercase,
-                                includeLowercase: $includeLowercase,
-                                excludeSimilar: $excludeSimilar,
+                        if showingHistory && !passwordHistory.isEmpty {
+                            PasswordHistoryView(
+                                passwordHistory: passwordHistory,
                                 namespace: glassNamespace
                             )
-                            .glassEffectID("advanced-settings", in: glassNamespace)
+                            .glassEffectID("password-history", in: glassNamespace)
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.9)),
-                                removal: .opacity.combined(with: .scale(scale: 1.1))
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .bottom).combined(with: .opacity)
                             ))
                         }
                         
-                        PasswordDisplayView(
-                            generatedPassword: generatedPassword,
-                            copyFeedback: $copyFeedback,
-                            namespace: glassNamespace
-                        )
-                        
-                        ButtonsContainerView(
-                            isGenerating: $isGenerating,
-                            settingsExpanded: $settingsExpanded,
-                            showingHistory: $showingHistory,
-                            generatedPassword: generatedPassword,
-                            generatePassword: generatePassword,
-                            copyToClipboard: copyToClipboard,
-                            namespace: glassNamespace
-                        )
+                        if showingKeychain {
+                            KeychainPasswordsView(namespace: glassNamespace)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                                    removal: .move(edge: .bottom).combined(with: .opacity)
+                                ))
+                        }
                     }
+                    .padding(.horizontal, adaptivePadding(for: geometry.size.width))
+                    .padding(.vertical, 20)
                 }
-                .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                if showingHistory && !passwordHistory.isEmpty {
-                    PasswordHistoryView(
-                        passwordHistory: passwordHistory,
-                        namespace: glassNamespace
-                    )
-                    .glassEffectID("password-history", in: glassNamespace)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .bottom).combined(with: .opacity),
-                        removal: .move(edge: .bottom).combined(with: .opacity)
-                    ))
+                if copyFeedback {
+                    CopyFeedbackView()
+                        .transition(.scale.combined(with: .opacity))
                 }
-                
-                Spacer()
-            }
-            .padding()
-            
-            if copyFeedback {
-                CopyFeedbackView()
-                    .transition(.scale.combined(with: .opacity))
             }
         }
+        .frame(minWidth: 400, idealWidth: 480, maxWidth: .infinity,
+               minHeight: 600, idealHeight: 680, maxHeight: .infinity)
         .animation(.bouncy, value: settingsExpanded)
         .animation(.easeInOut, value: showingHistory)
+        .animation(.easeInOut, value: showingKeychain)
         .animation(.easeInOut(duration: 0.3), value: copyFeedback)
+        .sheet(isPresented: $showingSaveDialog) {
+            SavePasswordSheet(
+                password: generatedPassword,
+                accountName: $accountNameToSave,
+                onSave: performSaveToKeychain
+            )
+        }
+    }
+    
+    // MARK: - Adaptive Sizing Functions
+    private func adaptiveSpacing(for height: CGFloat) -> CGFloat {
+        if height < 600 {
+            return 20
+        } else if height < 800 {
+            return 25
+        } else {
+            return 30
+        }
+    }
+    
+    private func adaptivePadding(for width: CGFloat) -> CGFloat {
+        if width < 450 {
+            return 16
+        } else if width < 600 {
+            return 20
+        } else {
+            return 24
+        }
     }
     
     private func generatePassword() {
@@ -171,6 +219,85 @@ struct ContentView: View {
                 copyFeedback = false
             }
         }
+    }
+    
+    private func saveToKeychain() {
+        guard !generatedPassword.isEmpty else { return }
+        showingSaveDialog = true
+    }
+    
+    private func performSaveToKeychain() {
+        guard !accountNameToSave.isEmpty && !generatedPassword.isEmpty else { return }
+        
+        let success = KeychainService.shared.savePassword(generatedPassword, for: accountNameToSave)
+        if success {
+            // Show success feedback
+            withAnimation(.easeInOut(duration: 0.2)) {
+                copyFeedback = true
+            }
+            
+            // Trigger keychain view update with notification
+            NotificationCenter.default.post(name: .keychainUpdated, object: nil)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    copyFeedback = false
+                }
+            }
+        }
+        
+        accountNameToSave = ""
+        showingSaveDialog = false
+    }
+}
+
+
+struct SavePasswordSheet: View {
+    let password: String
+    @Binding var accountName: String
+    let onSave: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Guardar en Keychain")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Nombre de la cuenta")
+                    .font(.headline)
+                
+                TextField("Ej: Gmail, Facebook, etc.", text: $accountName)
+                    .textFieldStyle(.roundedBorder)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Contraseña generada")
+                    .font(.headline)
+                
+                Text(password)
+                    .font(.system(.body, design: .monospaced))
+                    .padding()
+                    .background(.ultraThinMaterial, in: .rect(cornerRadius: 8))
+                    .foregroundStyle(.secondary)
+            }
+            
+            HStack(spacing: 16) {
+                Button("Cancelar") {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Guardar") {
+                    onSave()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(accountName.isEmpty)
+            }
+        }
+        .padding()
+        .frame(width: 400, height: 250)
     }
 }
 

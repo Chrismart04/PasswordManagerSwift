@@ -4,9 +4,11 @@ struct ButtonsContainerView: View {
     @Binding var isGenerating: Bool
     @Binding var settingsExpanded: Bool
     @Binding var showingHistory: Bool
+    @Binding var showingKeychain: Bool
     let generatedPassword: String
     let generatePassword: () -> Void
     let copyToClipboard: () -> Void
+    let saveToKeychain: () -> Void
     let namespace: Namespace.ID
     
     var body: some View {
@@ -46,6 +48,24 @@ struct ButtonsContainerView: View {
                 .keyboardShortcut("c", modifiers: .command)
                 .help("Copy password to clipboard (⌘C)")
                 
+                Button(action: saveToKeychain) {
+                    HStack {
+                        Image(systemName: "lock.shield.fill")
+                        Text("Save")
+                    }
+                    .font(.headline)
+                    .foregroundStyle(.green)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+                .glassEffectID("save-button", in: namespace)
+                .disabled(generatedPassword.isEmpty)
+                .keyboardShortcut("s", modifiers: .command)
+                .help("Save password to Keychain (⌘S)")
+            }
+            
+            HStack(spacing: 15) {
                 Button(action: {
                     withAnimation(.bouncy) {
                         settingsExpanded.toggle()
@@ -84,6 +104,25 @@ struct ButtonsContainerView: View {
                 .glassEffectID("history-button", in: namespace)
                 .keyboardShortcut("h", modifiers: .command)
                 .help("Show password history (⌘H)")
+                
+                Button(action: {
+                    withAnimation(.easeInOut) {
+                        showingKeychain.toggle()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "key.viewfinder")
+                        Text("Keychain")
+                    }
+                    .font(.headline)
+                    .foregroundStyle(.orange)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+                .glassEffectID("keychain-button", in: namespace)
+                .keyboardShortcut("k", modifiers: .command)
+                .help("Show saved passwords (⌘K)")
             }
         }
         .padding()
